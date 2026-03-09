@@ -1,0 +1,92 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Threading.Tasks;
+using MegaCrit.Sts2.Core.AutoSlay.Helpers;
+using MegaCrit.Sts2.Core.Nodes.Screens.Map;
+using Godot;
+using Sts2Agent.Utilities;
+
+namespace Sts2Agent.Contexts;
+
+public class MapHandler : IContextHandler
+{
+    public ContextType Type => ContextType.Map;
+
+    public Dictionary<string, object>? SerializeState(ContextInfo ctx)
+    {
+        var runState = ctx.RunState;
+        var result = new Dictionary<string, object>
+        {
+            ["act"] = runState.CurrentActIndex + 1
+        };
+
+        var coord = runState.CurrentMapCoord;
+        if (coord.HasValue)
+            result["currentCoord"] = new { row = coord.Value.row, col = coord.Value.col };
+
+        if (ctx.AvailableMapNodes != null)
+        {
+            result["availableNodes"] = ctx.AvailableMapNodes.Select(p => new Dictionary<string, object>
+            {
+                ["coord"] = new { row = p.coord.row, col = p.coord.col },
+                ["type"] = p.PointType.ToString()
+            }).ToList();
+        }
+
+        return result;
+    }
+
+    public List<Dictionary<string, object>> GetCommands(ContextInfo ctx)
+    {
+        var commands = new List<Dictionary<string, object>>();
+        if (ctx.AvailableMapNodes == null) return commands;
+
+        for (int i = 0; i < ctx.AvailableMapNodes.Count; i++)
+        {
+            commands.Add(new Dictionary<string, object>
+            {
+                ["type"] = "select_map_node",
+                ["index"] = i,
+                ["nodeType"] = ctx.AvailableMapNodes[i].PointType.ToString()
+            });
+        }
+
+        return commands;
+    }
+
+    public async Task<string>? TryExecute(string actionType, JsonElement root, ContextInfo ctx)
+    {
+        if (actionType != "select_map_node") return null;
+
+        var index = root.GetProperty("index").GetInt32();
+        var nodes = ctx.AvailableMapNodes;
+        if (nodes == null || index < 0 || index >= nodes.Count)
+            return ActionResult.Error($"Map node index {index} out of range (available: {nodes?.Count ?? 0})");
+
+        var target = nodes[index];
+        var sceneRoot = SceneHelper.GetSceneRoot();
+        if (sceneRoot == null)
+            return ActionResult.Error("Cannot access scene tree");
+
+        var mapPointNodes = UiHelper.FindAll<NMapPoint>(sceneRoot);
+        var targetNode = mapPointNodes.FirstOrDefault(mp =>
+            mp.Point.coord.row == target.coord.row && mp.Point.coord.col == target.coord.col);
+
+        if (targetNode == null)
+            return ActionResult.Error($"Map node UI element not found for ({target.coord.row}, {target.coord.col})");
+
+        await GodotMainThread.ClickAsync(targetNode);
+
+        // Wait for map screen to close
+        for (int i = 0; i < 100; i++)
+        {
+            await Task.Delay(100);
+            if (NMapScreen.Instance is not { IsOpen: true })
+                break;
+        }
+
+        Plugin.Log($"Selected map node {index} ({target.coord.row}, {target.coord.col})");
+        return ActionResult.Ok("Map node selected");
+    }
+}

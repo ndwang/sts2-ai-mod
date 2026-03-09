@@ -1,10 +1,13 @@
 using System;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Screens.Map;
 using MegaCrit.Sts2.Core.Nodes.Screens.Overlays;
+using MegaCrit.Sts2.Core.Rooms;
+using MegaCrit.Sts2.Core.Runs;
 
 namespace Sts2Agent;
 
@@ -67,5 +70,16 @@ public static class HandSelectCardsPatch
         // SelectCards sets CurrentMode before awaiting, so this fires
         // while the hand is already in selection mode
         GameStabilityDetector.OnHandSelectionEntered();
+    }
+}
+
+[HarmonyPatch(typeof(Hook), nameof(Hook.AfterRoomEntered))]
+public static class RoomEnteredPatch
+{
+    [HarmonyPostfix]
+    public static void Postfix(AbstractRoom room)
+    {
+        Plugin.Log($"Room entered: {room.GetType().Name} — scheduling stability check");
+        GameStabilityDetector.OnRoomEntered();
     }
 }
