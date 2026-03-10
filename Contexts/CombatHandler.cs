@@ -42,6 +42,19 @@ public class CombatHandler : IContextHandler
             result["drawPileCount"] = pcs.DrawPile.Cards.Count;
             result["discardPileCount"] = pcs.DiscardPile.Cards.Count;
             result["exhaustPileCount"] = pcs.ExhaustPile.Cards.Count;
+
+            var orbQueue = pcs.OrbQueue;
+            if (orbQueue != null && orbQueue.Capacity > 0)
+            {
+                result["orbSlots"] = orbQueue.Capacity;
+                result["orbs"] = orbQueue.Orbs.Select((orb, i) => new Dictionary<string, object>
+                {
+                    ["index"] = i,
+                    ["name"] = TextHelper.SafeLocString(() => orb.Title),
+                    ["passiveValue"] = orb.PassiveVal,
+                    ["evokeValue"] = orb.EvokeVal
+                }).ToList();
+            }
         }
 
         var playerCreature = player.Creature;
