@@ -132,20 +132,22 @@ public class CombatHandler : IContextHandler
 
         var combatState = card.CombatState ?? card.Owner.Creature.CombatState;
 
+        // Use the same alive-enemy list as serialization so indices match
+        var aliveEnemies = combatState.Enemies.Where(e => e.IsAlive).ToList();
+
         Creature? target = null;
         if (card.TargetType == TargetType.AnyEnemy)
         {
             if (root.TryGetProperty("targetIndex", out var targetProp))
             {
                 var targetIndex = targetProp.GetInt32();
-                var hittable = combatState.HittableEnemies;
-                if (targetIndex < 0 || targetIndex >= hittable.Count)
-                    return ActionResult.Error($"Target index {targetIndex} out of range (hittable: {hittable.Count})");
-                target = hittable[targetIndex];
+                if (targetIndex < 0 || targetIndex >= aliveEnemies.Count)
+                    return ActionResult.Error($"Target index {targetIndex} out of range (alive: {aliveEnemies.Count})");
+                target = aliveEnemies[targetIndex];
             }
             else
             {
-                target = combatState.HittableEnemies.FirstOrDefault();
+                target = aliveEnemies.FirstOrDefault();
             }
             if (target == null)
                 return ActionResult.Error("No valid target available");
@@ -200,6 +202,7 @@ public class CombatHandler : IContextHandler
         if (potion == null)
             return ActionResult.Error($"No potion in slot {slot}");
 
+        // Use the same alive-enemy list as serialization so indices match
         Creature? target = null;
         if (root.TryGetProperty("targetIndex", out var targetProp))
         {
@@ -209,7 +212,7 @@ public class CombatHandler : IContextHandler
                 var targetIndex = targetProp.GetInt32();
                 var aliveEnemies = combatState.Enemies.Where(e => e.IsAlive).ToList();
                 if (targetIndex < 0 || targetIndex >= aliveEnemies.Count)
-                    return ActionResult.Error($"Target index {targetIndex} out of range");
+                    return ActionResult.Error($"Target index {targetIndex} out of range (alive: {aliveEnemies.Count})");
                 target = aliveEnemies[targetIndex];
             }
         }

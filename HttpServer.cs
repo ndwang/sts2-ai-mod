@@ -185,7 +185,8 @@ public class HttpServer
             Plugin.Log($"HandleAction: action result={result}");
 
             // If action succeeded, wait for game to stabilize and return new state
-            if (!result.Contains("\"error\""))
+            using var resultDoc = JsonDocument.Parse(result);
+            if (!resultDoc.RootElement.TryGetProperty("error", out _))
             {
                 Plugin.Log("HandleAction: action succeeded, scheduling stability check");
                 Plugin.Log($"HandleAction: IsStable()={GameStabilityDetector.IsStable()}");

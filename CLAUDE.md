@@ -18,3 +18,4 @@ Never modify files in that folder.
 ## How mods work
 Mods use HarmonyX [HarmonyPatch] attributes to patch methods in sts2.dll at runtime.
 Use Prefix patches to run before a method, Postfix to run after.
+This mod is intended for a single player and a single HTTP client. The consumer should always call /state/wait for decision points, then call /action for its decisions, then wait on /state/wait again.
