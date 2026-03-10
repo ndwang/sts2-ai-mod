@@ -6,6 +6,7 @@ using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
 using MegaCrit.Sts2.Core.Rooms;
 using MegaCrit.Sts2.Core.Runs;
+using MegaCrit.Sts2.Core.AutoSlay.Helpers;
 using Sts2Agent.Contexts;
 
 namespace Sts2Agent;
@@ -174,8 +175,25 @@ public static class GameStabilityDetector
                 return true;
 
             case ContextType.GameOver:
-                Plugin.LogDebug("IsStable: game over screen → true");
-                return true;
+            {
+                var goScreen = MegaCrit.Sts2.Core.Nodes.Screens.Overlays.NOverlayStack.Instance?.Peek()
+                    as MegaCrit.Sts2.Core.Nodes.Screens.GameOverScreen.NGameOverScreen;
+                if (goScreen == null)
+                {
+                    Plugin.LogDebug("IsStable: game over screen not found → false");
+                    return false;
+                }
+                var mainMenuBtn = UiHelper.FindFirst<MegaCrit.Sts2.Core.Nodes.Screens.GameOverScreen.NReturnToMainMenuButton>(goScreen);
+                if (mainMenuBtn != null && mainMenuBtn.Visible && mainMenuBtn.IsEnabled)
+                {
+                    Plugin.LogDebug("IsStable: game over main menu button ready → true");
+                    return true;
+                }
+                var continueBtn = UiHelper.FindFirst<MegaCrit.Sts2.Core.Nodes.Screens.GameOverScreen.NGameOverContinueButton>(goScreen);
+                var ready = continueBtn != null && continueBtn.IsEnabled;
+                Plugin.LogDebug($"IsStable: game over continue enabled={ready} → {ready}");
+                return ready;
+            }
 
             case ContextType.MainMenu:
                 Plugin.LogDebug("IsStable: main menu → true");
