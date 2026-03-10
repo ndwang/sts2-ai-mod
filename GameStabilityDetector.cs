@@ -17,7 +17,7 @@ public static class GameStabilityDetector
     public static event Action? OnBecameStable;
     private static bool _pendingCheck;
     private static bool _wasStable;
-    private static ActionExecutor? _subscribedExecutor;
+    private static MegaCrit.Sts2.Core.GameActions.ActionExecutor? _subscribedExecutor;
     private static CombatManager? _subscribedCombat;
 
     public static void Initialize()
@@ -26,8 +26,17 @@ public static class GameStabilityDetector
         Plugin.LogDebug("GameStabilityDetector initialized.");
     }
 
-    private static void OnBeforeAction(GameAction _) { _wasStable = false; }
-    private static void OnAfterAction(GameAction _) { ScheduleStabilityCheck(); }
+    private static void OnBeforeAction(GameAction action)
+    {
+        Plugin.LogDebug($"OnBeforeAction: {action.GetType().Name}, _wasStable was {_wasStable} → false");
+        _wasStable = false;
+    }
+
+    private static void OnAfterAction(GameAction action)
+    {
+        Plugin.LogDebug($"OnAfterAction: {action.GetType().Name}, scheduling stability check");
+        ScheduleStabilityCheck();
+    }
 
     private static void TrySubscribeToActionExecutor()
     {
@@ -63,6 +72,17 @@ public static class GameStabilityDetector
 
     public static void OnActionStarting()
     {
+        _wasStable = false;
+    }
+
+    /// <summary>
+    /// Reset _wasStable so the next CheckStability that finds stable=true
+    /// will fire OnBecameStable.  Called by HttpServer after it resets its
+    /// signal events and before it schedules a post-action stability check.
+    /// </summary>
+    public static void ResetWasStable()
+    {
+        Plugin.LogDebug($"ResetWasStable: _wasStable was {_wasStable}, setting to false");
         _wasStable = false;
     }
 
@@ -102,13 +122,16 @@ public static class GameStabilityDetector
     {
         _pendingCheck = false;
         var stable = IsStable();
-        Plugin.LogDebug($"CheckStability: stable={stable}, _wasStable={_wasStable}");
         if (stable && !_wasStable)
         {
             _wasStable = true;
             Plugin.Log("=== GAME STABLE ===");
             Plugin.LogDebug(GameStateSerializer.Serialize());
             OnBecameStable?.Invoke();
+        }
+        else if (stable && _wasStable)
+        {
+            Plugin.LogDebug("CheckStability: stable but _wasStable already true — no event fired (expected after initial signal)");
         }
         else if (!stable)
         {
@@ -124,7 +147,12 @@ public static class GameStabilityDetector
         if (_pendingCheck) return;
         _pendingCheck = true;
         var tree = Engine.GetMainLoop() as SceneTree;
-        if (tree == null) return;
+        if (tree == null)
+        {
+            Plugin.LogDebug("ScheduleDelayedCheck: SceneTree is null, clearing _pendingCheck to avoid deadlock");
+            _pendingCheck = false;
+            return;
+        }
         var timer = tree.CreateTimer(0.2);
         timer.Timeout += () =>
         {

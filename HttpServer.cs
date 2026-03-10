@@ -47,6 +47,7 @@ public class HttpServer
     /// </summary>
     public void SignalDecisionPoint()
     {
+        Plugin.LogDebug("SignalDecisionPoint: setting _decisionReady and _actionStabilityReady");
         _decisionReady.Set();
         _actionStabilityReady.Set();
     }
@@ -150,6 +151,7 @@ public class HttpServer
         // If the game is already stable, return immediately
         if (GameStabilityDetector.IsStable())
         {
+            Plugin.LogDebug("HandleStateWait: already stable, returning immediately");
             return GameStateSerializer.Serialize();
         }
 
@@ -159,12 +161,29 @@ public class HttpServer
         if (int.TryParse(timeoutStr, out var t) && t > 0)
             timeoutMs = Math.Min(t, 120000);
 
+        // Reset to discard stale signals from previous decision points,
+        // then re-check stability to close the race window (game may have
+        // become stable between our first IsStable() check and the Reset).
+        _decisionReady.Reset();
+        if (GameStabilityDetector.IsStable())
+        {
+            Plugin.LogDebug("HandleStateWait: became stable after reset, returning");
+            return GameStateSerializer.Serialize();
+        }
+
+        // Ensure a stability poll is running so we don't rely solely on events
+        GameStabilityDetector.ScheduleStabilityCheck();
+
+        Plugin.LogDebug($"HandleStateWait: waiting up to {timeoutMs}ms for stability signal...");
         var signaled = _decisionReady.Wait(timeoutMs);
         if (!signaled)
         {
+            Plugin.LogDebug("HandleStateWait: TIMED OUT");
+            Plugin.LogDebug($"HandleStateWait: IsStable()={GameStabilityDetector.IsStable()}");
             return "{\"timeout\": true}";
         }
 
+        Plugin.LogDebug("HandleStateWait: signaled, returning state");
         return GameStateSerializer.Serialize();
     }
 
@@ -204,9 +223,14 @@ public class HttpServer
             using var resultDoc = JsonDocument.Parse(result);
             if (!resultDoc.RootElement.TryGetProperty("error", out _))
             {
-                // Reset signals to discard any stale ones, then schedule a fresh check
+                // Reset signals to discard any stale ones, then schedule a fresh check.
+                // CRITICAL: also reset _wasStable — during action execution, game action
+                // events may have set _wasStable=true. If we don't reset it, the next
+                // CheckStability sees stable=true && _wasStable=true → no-op, no event fires,
+                // and _actionStabilityReady never gets set → 10s timeout.
                 _decisionReady.Reset();
                 _actionStabilityReady.Reset();
+                GameStabilityDetector.ResetWasStable();
 
                 Plugin.LogDebug("HandleAction: action succeeded, scheduling stability check");
                 Plugin.LogDebug($"HandleAction: IsStable()={GameStabilityDetector.IsStable()}");
