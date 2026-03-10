@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using HarmonyLib;
 using MegaCrit.Sts2.Core.Commands;
 using MegaCrit.Sts2.Core.Entities.Cards;
 using MegaCrit.Sts2.Core.Entities.Creatures;
+using MegaCrit.Sts2.Core.Entities.Players;
 using MegaCrit.Sts2.Core.Entities.Powers;
 using MegaCrit.Sts2.Core.Hooks;
 using MegaCrit.Sts2.Core.Models;
@@ -200,6 +202,69 @@ public static class CardRemovedPatch
         catch (Exception e)
         {
             Plugin.LogError($"Error in CardRemovedPatch: {e}");
+        }
+    }
+}
+
+[HarmonyPatch(typeof(RelicModel), nameof(RelicModel.Flash), new Type[0])]
+public static class RelicActivatedPatch
+{
+    [HarmonyPostfix]
+    public static void Postfix(RelicModel __instance)
+    {
+        try
+        {
+            var relicName = TextHelper.SafeLocString(() => __instance.Title);
+            EventLog.Add("relic_activated", $"{relicName} activated", new Dictionary<string, object>
+            {
+                ["relic"] = relicName
+            });
+        }
+        catch (Exception e)
+        {
+            Plugin.LogError($"Error in RelicActivatedPatch: {e}");
+        }
+    }
+}
+
+[HarmonyPatch(typeof(RelicCmd), nameof(RelicCmd.Obtain), typeof(RelicModel), typeof(Player), typeof(int))]
+public static class RelicObtainedPatch
+{
+    [HarmonyPostfix]
+    public static void Postfix(RelicModel relic)
+    {
+        try
+        {
+            var relicName = TextHelper.SafeLocString(() => relic.Title);
+            EventLog.Add("relic_obtained", $"Obtained relic: {relicName}", new Dictionary<string, object>
+            {
+                ["relic"] = relicName
+            });
+        }
+        catch (Exception e)
+        {
+            Plugin.LogError($"Error in RelicObtainedPatch: {e}");
+        }
+    }
+}
+
+[HarmonyPatch(typeof(RelicCmd), nameof(RelicCmd.Remove))]
+public static class RelicRemovedPatch
+{
+    [HarmonyPostfix]
+    public static void Postfix(RelicModel relic)
+    {
+        try
+        {
+            var relicName = TextHelper.SafeLocString(() => relic.Title);
+            EventLog.Add("relic_removed", $"Lost relic: {relicName}", new Dictionary<string, object>
+            {
+                ["relic"] = relicName
+            });
+        }
+        catch (Exception e)
+        {
+            Plugin.LogError($"Error in RelicRemovedPatch: {e}");
         }
     }
 }
