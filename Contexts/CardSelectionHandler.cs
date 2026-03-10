@@ -232,6 +232,20 @@ public class CardSelectionHandler : IContextHandler
             return ActionResult.Ok("Skipped");
         }
 
+        // Card reward screens use NCardRewardAlternativeButton instead of NChoiceSelectionSkipButton
+        if (ctx.OverlayScreen is NCardRewardSelectionScreen cardRewardScreen)
+        {
+            var altButtons = UiHelper.FindAll<NCardRewardAlternativeButton>((Node)cardRewardScreen);
+            if (altButtons.Count > 0)
+            {
+                // Click the first alternative button (Skip). Reroll is added second if present.
+                await GodotMainThread.ClickAsync(altButtons[0]);
+                await WaitForOverlayClose(ctx.OverlayNode!, ctx.OverlayScreen);
+                Plugin.Log("Clicked skip on card reward screen");
+                return ActionResult.Ok("Skipped");
+            }
+        }
+
         // Fallback: proceed button
         var proceedButton = UiHelper.FindFirst<MegaCrit.Sts2.Core.Nodes.CommonUi.NProceedButton>(sceneRoot);
         if (proceedButton != null)
