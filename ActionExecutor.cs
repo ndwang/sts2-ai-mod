@@ -15,6 +15,7 @@ public static class ActionExecutor
         new MapHandler(),
         new HandSelectionHandler(),
         new CardSelectionHandler(),
+        new BundleSelectionHandler(),
         new RewardsHandler(),
         new CombatHandler(),
         new EventContextHandler(),

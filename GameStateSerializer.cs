@@ -55,7 +55,8 @@ public static class GameStateSerializer
             // "context" reflects the underlying room type (preserving API format),
             // while overlays are reported separately via the "overlay" key.
             var isOverlay = ctx.Type is ContextType.CardSelection
-                or ContextType.Rewards or ContextType.HandSelection;
+                or ContextType.Rewards or ContextType.HandSelection
+                or ContextType.BundleSelection;
             state["context"] = isOverlay
                 ? GetRoomContext(ctx.RunState!.CurrentRoom)
                 : GetContextString(ctx.Type);

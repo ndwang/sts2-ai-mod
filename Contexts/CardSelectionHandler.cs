@@ -195,6 +195,7 @@ public class CardSelectionHandler : IContextHandler
 
         if (enabledButton != null)
         {
+            await Task.Delay(2000);
             await GodotMainThread.ClickAsync(enabledButton);
             Plugin.LogDebug("SelectCard: clicked confirm button");
             await WaitForOverlayClose(ctx.OverlayNode, ctx.OverlayScreen);

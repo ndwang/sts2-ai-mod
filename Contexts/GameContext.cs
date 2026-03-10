@@ -4,6 +4,7 @@ using Godot;
 using MegaCrit.Sts2.Core.AutoSlay.Helpers;
 using MegaCrit.Sts2.Core.Combat;
 using MegaCrit.Sts2.Core.Entities.Merchant;
+using MegaCrit.Sts2.Core.Nodes.Cards;
 using MegaCrit.Sts2.Core.Nodes.Cards.Holders;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Screens;
@@ -30,6 +31,7 @@ public enum ContextType
     RestSite,
     Shop,
     Treasure,
+    BundleSelection,
     GameOver,
     CharacterSelect,
     MainMenu,
@@ -56,6 +58,10 @@ public class ContextInfo
     public Node? OverlayNode { get; init; }
     public List<NCardHolder>? CardHolders { get; init; }
     public bool IsGridScreen { get; init; }
+
+    // Bundle selection overlay
+    public NChooseABundleSelectionScreen? BundleScreen { get; init; }
+    public List<NCardBundle>? Bundles { get; init; }
 
     // Rewards
     public NRewardsScreen? RewardsScreen { get; init; }
@@ -134,6 +140,21 @@ public static class GameContext
             {
                 Type = ContextType.GameOver,
                 RunState = runState
+            };
+        }
+
+        // Bundle/card pack selection screen
+        if (overlayScreen is NChooseABundleSelectionScreen bundleScreen)
+        {
+            var bundles = UiHelper.FindAll<NCardBundle>((Node)bundleScreen);
+            return new ContextInfo
+            {
+                Type = ContextType.BundleSelection,
+                RunState = runState,
+                OverlayScreen = bundleScreen,
+                OverlayNode = (Node)bundleScreen,
+                BundleScreen = bundleScreen,
+                Bundles = bundles
             };
         }
 
