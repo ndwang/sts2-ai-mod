@@ -44,11 +44,13 @@ public class MapHandler : IContextHandler
 
         for (int i = 0; i < ctx.AvailableMapNodes.Count; i++)
         {
+            var node = ctx.AvailableMapNodes[i];
             commands.Add(new Dictionary<string, object>
             {
                 ["type"] = "select_map_node",
                 ["index"] = i,
-                ["nodeType"] = ctx.AvailableMapNodes[i].PointType.ToString()
+                ["nodeType"] = node.PointType.ToString(),
+                ["coord"] = new { row = node.coord.row, col = node.coord.col }
             });
         }
 
