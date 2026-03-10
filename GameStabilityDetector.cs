@@ -1,6 +1,7 @@
 using System;
 using Godot;
 using MegaCrit.Sts2.Core.Combat;
+using MegaCrit.Sts2.Core.GameActions;
 using MegaCrit.Sts2.Core.Models;
 using MegaCrit.Sts2.Core.Nodes.Combat;
 using MegaCrit.Sts2.Core.Nodes.Rooms;
@@ -16,8 +17,7 @@ public static class GameStabilityDetector
     public static event Action? OnBecameStable;
     private static bool _pendingCheck;
     private static bool _wasStable;
-    private static bool _actionInProgress;
-    private static bool _subscribedToActionExecutor;
+    private static ActionExecutor? _subscribedExecutor;
     private static CombatManager? _subscribedCombat;
 
     public static void Initialize()
@@ -26,16 +26,23 @@ public static class GameStabilityDetector
         Plugin.LogDebug("GameStabilityDetector initialized.");
     }
 
+    private static void OnBeforeAction(GameAction _) { _wasStable = false; }
+    private static void OnAfterAction(GameAction _) { ScheduleStabilityCheck(); }
+
     private static void TrySubscribeToActionExecutor()
     {
-        if (_subscribedToActionExecutor) return;
         try
         {
             var executor = RunManager.Instance?.ActionExecutor;
-            if (executor == null) return;
-            executor.BeforeActionExecuted += _ => { _wasStable = false; };
-            executor.AfterActionExecuted += _ => ScheduleStabilityCheck();
-            _subscribedToActionExecutor = true;
+            if (executor == null || executor == _subscribedExecutor) return;
+            if (_subscribedExecutor != null)
+            {
+                _subscribedExecutor.BeforeActionExecuted -= OnBeforeAction;
+                _subscribedExecutor.AfterActionExecuted -= OnAfterAction;
+            }
+            executor.BeforeActionExecuted += OnBeforeAction;
+            executor.AfterActionExecuted += OnAfterAction;
+            _subscribedExecutor = executor;
             Plugin.LogDebug("Subscribed to ActionExecutor events.");
         }
         catch (Exception e)
@@ -57,12 +64,6 @@ public static class GameStabilityDetector
     public static void OnActionStarting()
     {
         _wasStable = false;
-        _actionInProgress = true;
-    }
-
-    public static void OnActionCompleted()
-    {
-        _actionInProgress = false;
     }
 
     public static void OnHandSelectionEntered()
@@ -100,11 +101,6 @@ public static class GameStabilityDetector
     private static void CheckStability()
     {
         _pendingCheck = false;
-        if (_actionInProgress)
-        {
-            Plugin.LogDebug("CheckStability: action in progress — skipping");
-            return;
-        }
         var stable = IsStable();
         Plugin.LogDebug($"CheckStability: stable={stable}, _wasStable={_wasStable}");
         if (stable && !_wasStable)
@@ -117,7 +113,24 @@ public static class GameStabilityDetector
         else if (!stable)
         {
             _wasStable = false;
+            // Re-poll: game actions (animations, transitions) may still be running.
+            // Schedule another check so we don't depend solely on events.
+            ScheduleDelayedCheck();
         }
+    }
+
+    private static void ScheduleDelayedCheck()
+    {
+        if (_pendingCheck) return;
+        _pendingCheck = true;
+        var tree = Engine.GetMainLoop() as SceneTree;
+        if (tree == null) return;
+        var timer = tree.CreateTimer(0.2);
+        timer.Timeout += () =>
+        {
+            _pendingCheck = false;
+            ScheduleStabilityCheck();
+        };
     }
 
     public static bool IsStable()

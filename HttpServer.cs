@@ -193,7 +193,7 @@ public class HttpServer
             if (!task.Wait(TimeSpan.FromSeconds(15)))
             {
                 Plugin.LogError("HandleAction: ActionExecutor.Execute timed out after 15s");
-                GameStabilityDetector.OnActionCompleted();
+
                 return "{\"error\": \"Action execution timed out\"}";
             }
 
@@ -204,9 +204,7 @@ public class HttpServer
             using var resultDoc = JsonDocument.Parse(result);
             if (!resultDoc.RootElement.TryGetProperty("error", out _))
             {
-                // Mark action as completed so stability checks can resume,
-                // then reset signals to discard any stale ones from during the action
-                GameStabilityDetector.OnActionCompleted();
+                // Reset signals to discard any stale ones, then schedule a fresh check
                 _decisionReady.Reset();
                 _actionStabilityReady.Reset();
 
@@ -235,21 +233,18 @@ public class HttpServer
             }
 
             // Action failed — re-signal decision point so /state/wait doesn't hang
-            GameStabilityDetector.OnActionCompleted();
             SignalDecisionPoint();
             return result;
         }
         catch (AggregateException ae) when (ae.InnerException != null)
         {
             Plugin.LogError($"Action error: {ae.InnerException.Message}");
-            GameStabilityDetector.OnActionCompleted();
             SignalDecisionPoint();
             return $"{{\"error\": \"{EscapeJson(ae.InnerException.Message)}\"}}";
         }
         catch (Exception e)
         {
             Plugin.LogError($"Action error: {e.Message}");
-            GameStabilityDetector.OnActionCompleted();
             SignalDecisionPoint();
             return $"{{\"error\": \"{EscapeJson(e.Message)}\"}}";
         }

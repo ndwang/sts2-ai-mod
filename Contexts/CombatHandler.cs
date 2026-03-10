@@ -216,22 +216,37 @@ public class CombatHandler : IContextHandler
         if (potion == null)
             return ActionResult.Error($"No potion in slot {slot}");
 
-        // Use the same alive-enemy list as serialization so indices match
+        // Resolve target based on potion's target type
         Creature? target = null;
-        if (root.TryGetProperty("targetIndex", out var targetProp))
+        var targetType = potion.TargetType;
+        if (targetType == TargetType.AnyEnemy || targetType == TargetType.TargetedNoCreature)
         {
             var combatState = ctx.CombatState;
             if (combatState != null)
             {
-                var targetIndex = targetProp.GetInt32();
                 var aliveEnemies = combatState.Enemies.Where(e => e.IsAlive).ToList();
-                if (targetIndex < 0 || targetIndex >= aliveEnemies.Count)
-                    return ActionResult.Error($"Target index {targetIndex} out of range (alive: {aliveEnemies.Count})");
-                target = aliveEnemies[targetIndex];
+                if (root.TryGetProperty("targetIndex", out var targetProp))
+                {
+                    var targetIndex = targetProp.GetInt32();
+                    if (targetIndex < 0 || targetIndex >= aliveEnemies.Count)
+                        return ActionResult.Error($"Target index {targetIndex} out of range (alive: {aliveEnemies.Count})");
+                    target = aliveEnemies[targetIndex];
+                }
+                else
+                {
+                    target = aliveEnemies.FirstOrDefault();
+                }
+                if (target == null)
+                    return ActionResult.Error("No valid target for potion");
             }
         }
+        else
+        {
+            // Self-targeting potions: game UI passes Owner.Creature
+            target = player.Creature;
+        }
 
-        potion.EnqueueManualUse(target);
+        Callable.From(() => potion.EnqueueManualUse(target)).CallDeferred();
         Plugin.Log($"Used potion in slot {slot}");
         return ActionResult.Ok("Potion used");
     }
