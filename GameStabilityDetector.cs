@@ -15,6 +15,7 @@ public static class GameStabilityDetector
     public static event Action? OnBecameStable;
     private static bool _pendingCheck;
     private static bool _wasStable;
+    private static bool _actionInProgress;
     private static bool _subscribedToActionExecutor;
     private static CombatManager? _subscribedCombat;
 
@@ -55,6 +56,12 @@ public static class GameStabilityDetector
     public static void OnActionStarting()
     {
         _wasStable = false;
+        _actionInProgress = true;
+    }
+
+    public static void OnActionCompleted()
+    {
+        _actionInProgress = false;
     }
 
     public static void OnHandSelectionEntered()
@@ -92,6 +99,11 @@ public static class GameStabilityDetector
     private static void CheckStability()
     {
         _pendingCheck = false;
+        if (_actionInProgress)
+        {
+            Plugin.LogDebug("CheckStability: action in progress — skipping");
+            return;
+        }
         var stable = IsStable();
         Plugin.LogDebug($"CheckStability: stable={stable}, _wasStable={_wasStable}");
         if (stable && !_wasStable)
