@@ -127,9 +127,9 @@ public class CombatHandler : IContextHandler
     private async Task<string> PlayCard(JsonElement root, ContextInfo ctx)
     {
         var cm = CombatManager.Instance;
-        if (cm == null) return ActionResult.Error("Not in combat");
-        if (cm.IsOverOrEnding) return ActionResult.Error("Combat is ending");
-        if (!cm.IsPlayPhase) return ActionResult.Error("Not in play phase");
+        if (cm == null) return ActionResult.Ok("Combat already ended");
+        if (cm.IsOverOrEnding) return ActionResult.Ok("Combat is ending");
+        if (!cm.IsPlayPhase) return ActionResult.Ok("Not in play phase, action ignored");
 
         var cardIndex = root.GetProperty("cardIndex").GetInt32();
         var player = LocalContext.GetMe(ctx.RunState.Players);
@@ -185,12 +185,12 @@ public class CombatHandler : IContextHandler
     private string EndTurn(ContextInfo ctx)
     {
         var cm = CombatManager.Instance;
-        if (cm == null) return ActionResult.Error("Not in combat");
-        if (!cm.IsPlayPhase || !cm.IsInProgress) return ActionResult.Error("Not in play phase");
+        if (cm == null) return ActionResult.Ok("Combat already ended");
+        if (!cm.IsPlayPhase || !cm.IsInProgress) return ActionResult.Ok("Not in play phase, action ignored");
 
         var player = LocalContext.GetMe(ctx.RunState.Players);
         if (cm.IsPlayerReadyToEndTurn(player))
-            return ActionResult.Error("Turn already ended");
+            return ActionResult.Ok("Turn already ended");
 
         var roundNumber = player.Creature.CombatState.RoundNumber;
         Callable.From(() =>

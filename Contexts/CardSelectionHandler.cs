@@ -83,6 +83,15 @@ public class CardSelectionHandler : IContextHandler
         var cardHolders = ctx.CardHolders;
         if (cardHolders == null) return commands;
 
+        // Don't offer commands until the screen is fully initialized (_completionSource set)
+        if (ctx.OverlayScreen != null)
+        {
+            var tcsField = ctx.OverlayScreen.GetType().GetField("_completionSource",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (tcsField != null && tcsField.GetValue(ctx.OverlayScreen) == null)
+                return commands;
+        }
+
         for (int i = 0; i < cardHolders.Count; i++)
         {
             var card = cardHolders[i].CardNode?.Model;

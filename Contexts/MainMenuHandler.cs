@@ -31,14 +31,25 @@ public class MainMenuHandler : IContextHandler
     {
         var commands = new List<Dictionary<string, object>>();
 
+        var sceneRoot = SceneHelper.GetSceneRoot();
+        var mainMenu = sceneRoot != null ? UiHelper.FindFirst<NMainMenu>(sceneRoot) : null;
+        if (mainMenu == null) return commands;
+
         if (SaveManager.Instance.HasRunSave)
         {
-            commands.Add(new Dictionary<string, object> { ["type"] = "continue_run" });
-            commands.Add(new Dictionary<string, object> { ["type"] = "abandon_run" });
+            var continueBtn = mainMenu.GetNode<NClickableControl>("MainMenuTextButtons/ContinueButton");
+            if (continueBtn != null && continueBtn.IsEnabled)
+                commands.Add(new Dictionary<string, object> { ["type"] = "continue_run" });
+
+            var abandonBtn = mainMenu.GetNode<NClickableControl>("MainMenuTextButtons/AbandonRunButton");
+            if (abandonBtn != null && abandonBtn.IsEnabled)
+                commands.Add(new Dictionary<string, object> { ["type"] = "abandon_run" });
         }
         else
         {
-            commands.Add(new Dictionary<string, object> { ["type"] = "start_run" });
+            var spButton = mainMenu.GetNode<NClickableControl>("MainMenuTextButtons/SingleplayerButton");
+            if (spButton != null && spButton.IsEnabled)
+                commands.Add(new Dictionary<string, object> { ["type"] = "start_run" });
         }
 
         return commands;

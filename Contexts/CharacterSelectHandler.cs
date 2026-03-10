@@ -66,10 +66,13 @@ public class CharacterSelectHandler : IContextHandler
             });
         }
 
-        commands.Add(new Dictionary<string, object>
+        if (ctx.CharacterSelectScreen != null && GodotObject.IsInstanceValid(ctx.CharacterSelectScreen))
         {
-            ["type"] = "embark"
-        });
+            var embarkButton = ctx.CharacterSelectScreen.GetNode<Godot.Control>("ConfirmButton")
+                as MegaCrit.Sts2.Core.Nodes.CommonUi.NConfirmButton;
+            if (embarkButton != null && embarkButton.IsEnabled)
+                commands.Add(new Dictionary<string, object> { ["type"] = "embark" });
+        }
 
         return commands;
     }
