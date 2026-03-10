@@ -98,6 +98,10 @@ public class HttpServer
                     responseBody = HandleStateWait(request);
                     break;
 
+                case "/map" when method == "GET":
+                    responseBody = MapSerializer.Serialize();
+                    break;
+
                 case "/action" when method == "POST":
                     responseBody = HandleAction(request);
                     statusCode = 200;
