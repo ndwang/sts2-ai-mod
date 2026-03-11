@@ -232,7 +232,7 @@ Command objects also include `nodeType` and `coord` for display.
       "powers": [],
       "intents": [
         { "type": "Attack", "damage": 11 },
-        { "type": "Attack", "damage": 5, "hits": 3 }
+        { "type": "Attack", "damage": 15, "hits": 3 }
       ]
     }
   ]
