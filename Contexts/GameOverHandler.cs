@@ -41,7 +41,7 @@ public class GameOverHandler : IContextHandler
         result["seed"] = history.Seed;
         result["ascension"] = history.Ascension;
         result["run_time"] = history.RunTime;
-        result["floor_reached"] = history.MapPointHistory.Count;
+        result["floor_reached"] = history.MapPointHistory.Sum(act => act.Count);
 
         if (!history.Win)
         {

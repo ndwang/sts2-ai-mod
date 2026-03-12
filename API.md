@@ -386,7 +386,7 @@ Also includes `map` key with available next nodes.
 | `seed` | string | Run seed |
 | `ascension` | int | Ascension level |
 | `run_time` | float | Run duration in seconds |
-| `floor_reached` | int | Number of acts visited |
+| `floor_reached` | int | Total number of floors (map nodes) visited across all acts |
 | `killed_by` | string? | Localized name of encounter/event that killed the player (defeat only) |
 | `score` | int | Calculated run score |
 | `character` | string | Localized character name |
