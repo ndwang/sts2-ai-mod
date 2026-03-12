@@ -290,7 +290,7 @@ public static class GameContext
             var map = runState.Map;
             var visited = runState.VisitedMapCoords;
             if (visited.Count == 0)
-                return map.GetPointsInRow(0).ToList();
+                return new List<MegaCrit.Sts2.Core.Map.MapPoint> { map.StartingMapPoint };
 
             var lastCoord = visited[visited.Count - 1];
             return map.GetPoint(lastCoord)?.Children.ToList()
