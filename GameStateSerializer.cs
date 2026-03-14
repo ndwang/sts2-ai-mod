@@ -66,14 +66,6 @@ public static class GameStateSerializer
             if (localPlayer != null)
                 state["player"] = SerializePlayer(localPlayer);
 
-            // Companions (other players in the run)
-            var companions = ctx.RunState!.Players
-                .Where(p => p != localPlayer)
-                .Select(p => SerializeCompanion(p))
-                .ToList();
-            if (companions.Count > 0)
-                state["companions"] = companions;
-
             // Context-specific state from handler
             var handler = ActionExecutor.GetHandlers()
                 .FirstOrDefault(h => h.Type == ctx.Type);
@@ -228,33 +220,6 @@ public static class GameStateSerializer
                 }
             }
         }
-    }
-
-    private static Dictionary<string, object> SerializeCompanion(Player player)
-    {
-        var result = new Dictionary<string, object>
-        {
-            ["name"] = player.Creature.Name,
-            ["hp"] = player.Creature.CurrentHp,
-            ["maxHp"] = player.Creature.MaxHp
-        };
-
-        if (player.Creature.CombatState != null)
-        {
-            result["block"] = player.Creature.Block;
-            var powers = player.Creature.Powers;
-            if (powers.Count > 0)
-            {
-                result["powers"] = powers.Select(p => new Dictionary<string, object>
-                {
-                    ["name"] = TextHelper.SafeLocString(() => p.Title),
-                    ["amount"] = p.Amount,
-                    ["description"] = TextHelper.GetPowerDescription(p)
-                }).ToList();
-            }
-        }
-
-        return result;
     }
 
     private static Dictionary<string, object> SerializePlayer(Player player)

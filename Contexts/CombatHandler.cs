@@ -66,6 +66,26 @@ public class CombatHandler : IContextHandler
             .Select((e, i) => SerializeEnemy(e, i, combatState))
             .ToList();
 
+        // Companions (allied creatures that aren't the local player)
+        var companions = combatState.Allies
+            .Where(c => c.IsAlive && c != playerCreature)
+            .Select(c =>
+            {
+                var comp = new Dictionary<string, object>
+                {
+                    ["name"] = c.Name,
+                    ["hp"] = c.CurrentHp,
+                    ["maxHp"] = c.MaxHp,
+                    ["block"] = c.Block
+                };
+                if (c.Powers.Count > 0)
+                    comp["powers"] = SerializePowers(c.Powers);
+                return comp;
+            })
+            .ToList();
+        if (companions.Count > 0)
+            result["companions"] = companions;
+
         return result;
     }
 
