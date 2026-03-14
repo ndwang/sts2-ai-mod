@@ -64,7 +64,7 @@ Requires .NET 9.0 and a local STS2 installation (for `sts2.dll` reference).
 dotnet build
 ```
 
-The build automatically copies the output DLL to the STS2 mods folder.
+Copy the output DLL to the STS2 mods folder.
 
 ## Logs
 
