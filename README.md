@@ -1,4 +1,4 @@
-# sts2agent
+# sts2-ai-mod
 
 A Slay the Spire 2 mod that exposes the game state and actions over a local HTTP API, enabling programmatic control of the game.
 
@@ -11,7 +11,7 @@ A Slay the Spire 2 mod that exposes the game state and actions over a local HTTP
 
 ## Installation
 
-1. Download `sts2agent.dll` and `sts2agent.pck` from the [latest release](https://github.com/wdong/sts2agent/releases)
+1. Download `sts2agent.dll` and `sts2agent.pck` from the [latest release](https://github.com/wdong/sts2-ai-mod/releases)
 2. Copy both files to your STS2 mods folder:
    ```
    <Steam>/steamapps/common/Slay the Spire 2/mods/
